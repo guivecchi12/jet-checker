@@ -1,0 +1,10 @@
+[
+  {"textId": "label.noData", "scope": "private-jet"},
+  {"textId": "label.departureOn", "scope": "private-jet"},
+  {"textId": "label.bookedOn", "scope": "private-jet"},
+  {"textId": "button.search", "scope": null},
+  {"textId": "rowsPerPageText", "scope": "tablePagination"},
+  {"textId": "resultsLabel", "scope": "tablePagination"},
+  {"textId": "label.flyPrivateJetLabel", "scope": null},
+  {"textId": "label.newPrivateJetFlightButton", "scope": "private-jet"}
+]

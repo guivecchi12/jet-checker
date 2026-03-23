@@ -1,0 +1,16 @@
+{
+  "name": "myidtravel-checker",
+  "version": "2.0.0",
+  "description": "PWA to check myIDTravel private jet flights",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node index.js",
+    "check:headed": "HEADED=true node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "playwright": "^1.49.0"
+  }
+}
