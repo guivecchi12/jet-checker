@@ -1,5 +1,5 @@
-const CACHE = 'jet-flights-v2';
-const SHELL = ['/', '/style.css', '/app.js', '/manifest.json', '/icon-192.svg', '/icon-512.svg'];
+const CACHE = 'jet-flights-v3';
+const SHELL = ['./', 'style.css', 'app.js', 'manifest.json', 'icon-192.svg', 'icon-512.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));

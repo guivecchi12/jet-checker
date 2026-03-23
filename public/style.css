@@ -4,162 +4,241 @@
   --bg: #0f172a;
   --surface: #1e293b;
   --surface2: #334155;
+  --border: rgba(148, 163, 184, 0.12);
   --text: #f1f5f9;
   --text-dim: #94a3b8;
+  --text-muted: #64748b;
   --accent: #38bdf8;
   --green: #4ade80;
-  --radius: 12px;
+  --amber: #fbbf24;
+  --radius: 14px;
+  --max-w: 480px;
 }
 
+html { background: var(--bg); }
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100dvh;
-  padding-bottom: env(safe-area-inset-bottom);
+  -webkit-font-smoothing: antialiased;
 }
 
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); border: 0;
+}
+
+/* ─── Header ─── */
 header {
   position: sticky;
   top: 0;
-  background: var(--bg);
-  padding: 16px 16px 8px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 16px 16px 10px;
   z-index: 10;
-  border-bottom: 1px solid var(--surface2);
+  max-width: var(--max-w);
+  margin: 0 auto;
 }
 
-h1 {
-  font-size: 20px;
-  font-weight: 700;
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 12px;
 }
 
-.controls {
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+header button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface);
+  color: var(--accent);
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+header button:active { background: var(--surface2); }
+header button:disabled { opacity: 0.4; }
+
+.controls {
+  margin-bottom: 6px;
 }
 
 select {
-  flex: 1;
-  padding: 10px 12px;
+  width: 100%;
+  padding: 12px 40px 12px 14px;
   border-radius: var(--radius);
-  border: 1px solid var(--surface2);
+  border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 15px;
+  font-weight: 500;
   appearance: none;
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
-}
-
-button {
-  padding: 10px 20px;
-  border-radius: var(--radius);
-  border: none;
-  background: var(--accent);
-  color: var(--bg);
-  font-size: 15px;
-  font-weight: 600;
+  background-position: right 14px center;
   cursor: pointer;
-  white-space: nowrap;
 }
 
-button:active { opacity: 0.8; }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
 
 #status {
   font-size: 12px;
-  color: var(--text-dim);
-  padding: 6px 0 2px;
+  color: var(--text-muted);
+  padding: 4px 0;
   min-height: 20px;
 }
 
+/* ─── Main ─── */
 main {
-  padding: 8px 16px 24px;
+  padding: 4px 16px 32px;
+  max-width: var(--max-w);
+  margin: 0 auto;
 }
 
+/* ─── Date groups ─── */
 .date-group {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .date-header {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--accent);
-  padding: 12px 0 8px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 16px 0 8px;
   position: sticky;
-  top: 108px;
-  background: var(--bg);
+  top: 118px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 5;
 }
 
+/* ─── Flight cards ─── */
 .flight-card {
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 8px;
+  padding: 16px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  transition: transform 0.1s;
+}
+
+.flight-card:active {
+  transform: scale(0.98);
 }
 
 .flight-route {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
 }
 
 .airport-code {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
   letter-spacing: 1px;
 }
 
 .route-arrow {
-  color: var(--text-dim);
-  font-size: 14px;
+  color: var(--text-muted);
+  font-size: 16px;
 }
 
 .flight-cities {
   font-size: 12px;
   color: var(--text-dim);
-  margin-bottom: 8px;
-  line-height: 1.3;
+  margin-bottom: 12px;
+  line-height: 1.4;
 }
 
-.flight-details {
+.flight-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.meta-item {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  font-size: 13px;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.flight-detail {
+.meta-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.meta-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.meta-value.price {
+  color: var(--green);
+}
+
+.meta-value.seats {
+  color: var(--accent);
+}
+
+.meta-value.time {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.flight-footer {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
-.flight-detail .label {
-  color: var(--text-dim);
+.flight-footer .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
 }
 
-.flight-detail .value {
-  color: var(--text);
-  font-weight: 500;
-}
-
-.price { color: var(--green); font-weight: 700; }
-.seats { color: var(--accent); }
-
+/* ─── States ─── */
 .loading main { opacity: 0.4; pointer-events: none; }
 
 .spinner {
   display: none;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--text-dim);
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--text-muted);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -171,16 +250,19 @@ main {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.empty {
+.empty, .error {
   text-align: center;
-  padding: 60px 20px;
-  color: var(--text-dim);
-  font-size: 16px;
+  padding: 80px 24px;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
-.error {
-  text-align: center;
-  padding: 40px 20px;
-  color: #f87171;
-  font-size: 15px;
+.empty { color: var(--text-dim); }
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.4;
 }
+
+.error { color: #f87171; }

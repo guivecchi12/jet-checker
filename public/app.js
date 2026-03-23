@@ -14,7 +14,12 @@ function timeAgo(isoStr) {
   const diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
   if (diff < 60) return 'just now';
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function titleCase(str) {
+  return str.split(' ').map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
 }
 
 function renderFlights() {
@@ -24,11 +29,15 @@ function renderFlights() {
     : allFlights.filter((f) => f.from.countryName === country);
 
   if (filtered.length === 0) {
-    flightsEl.innerHTML = '<div class="empty">No flights found for this country.</div>';
+    const label = country === 'ALL' ? 'any country' : titleCase(country);
+    flightsEl.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">&#9992;</div>
+        <div>No flights departing from ${label} this week.</div>
+      </div>`;
     return;
   }
 
-  // Group by date
   const byDate = {};
   for (const f of filtered) {
     (byDate[f.departureDate] ??= []).push(f);
@@ -48,37 +57,32 @@ function renderFlights() {
             <span class="airport-code">${f.to.code}</span>
           </div>
           <div class="flight-cities">
-            ${f.from.name} &rarr; ${f.to.name}
+            ${titleCase(f.from.name)} &rarr; ${titleCase(f.to.name)}
           </div>
-          <div class="flight-details">
-            <div class="flight-detail">
-              <span class="label">Time</span>
-              <span class="value">${f.departureTime}&ndash;${f.arrivalTime}</span>
+          <div class="flight-meta">
+            <div class="meta-item">
+              <span class="meta-label">Time</span>
+              <span class="meta-value time">${f.departureTime} &ndash; ${f.arrivalTime}</span>
             </div>
-            <div class="flight-detail">
-              <span class="label">Duration</span>
-              <span class="value">${f.duration}</span>
+            <div class="meta-item">
+              <span class="meta-label">Duration</span>
+              <span class="meta-value">${f.duration}</span>
             </div>
-            <div class="flight-detail">
-              <span class="label">Price</span>
-              <span class="value price">${f.price.total.value} ${f.price.total.currency}</span>
+            <div class="meta-item">
+              <span class="meta-label">Price</span>
+              <span class="meta-value price">${f.price.total.value} ${f.price.total.currency}</span>
             </div>
-            <div class="flight-detail">
-              <span class="label">Seats</span>
-              <span class="value seats">${f.bookableSeats}</span>
+            <div class="meta-item">
+              <span class="meta-label">Seats</span>
+              <span class="meta-value seats">${f.bookableSeats}</span>
             </div>
-            <div class="flight-detail">
-              <span class="label">Flight</span>
-              <span class="value">${f.flightNumber}</span>
-            </div>
-            <div class="flight-detail">
-              <span class="label">Airline</span>
-              <span class="value">${f.ticketingAirline.name}</span>
-            </div>
-            <div class="flight-detail">
-              <span class="label">Aircraft</span>
-              <span class="value">${f.aircraft}</span>
-            </div>
+          </div>
+          <div class="flight-footer">
+            <span>${f.flightNumber}</span>
+            <span class="dot"></span>
+            <span>${f.ticketingAirline.name}</span>
+            <span class="dot"></span>
+            <span>${f.aircraft}</span>
           </div>
         </div>`;
     }
@@ -95,11 +99,9 @@ function populateCountries(countries) {
   for (const c of countries) {
     const opt = document.createElement('option');
     opt.value = c;
-    // Title case
-    opt.textContent = c.split(' ').map((w) => w[0] + w.slice(1).toLowerCase()).join(' ');
+    opt.textContent = titleCase(c);
     countrySelect.appendChild(opt);
   }
-  // Restore previous selection or default to US
   if ([...countrySelect.options].some((o) => o.value === current)) {
     countrySelect.value = current;
   } else {
@@ -119,17 +121,20 @@ async function fetchFlights() {
   setLoading(true);
   try {
     const res = await fetch('flights.json?' + Date.now());
+    if (!res.ok) throw new Error('No data');
     const data = await res.json();
-
-    if (data.error) throw new Error(data.error);
 
     allFlights = data.flights;
     populateCountries(data.countries);
     renderFlights();
     statusEl.textContent = `${allFlights.length} flights \u00b7 Updated ${timeAgo(data.fetchedAt)}`;
-  } catch (err) {
-    flightsEl.innerHTML = `<div class="error">No flight data yet. Data refreshes every 30 minutes.</div>`;
-    statusEl.textContent = 'Waiting for data';
+  } catch {
+    flightsEl.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">&#128337;</div>
+        <div>No flight data yet.<br>Data refreshes daily.</div>
+      </div>`;
+    statusEl.textContent = '';
   } finally {
     setLoading(false);
   }
@@ -138,5 +143,4 @@ async function fetchFlights() {
 countrySelect.addEventListener('change', renderFlights);
 refreshBtn.addEventListener('click', () => fetchFlights());
 
-// Auto-fetch on load
 fetchFlights();
