@@ -111,15 +111,14 @@ function setLoading(loading) {
   document.body.classList.toggle('loading', loading);
   refreshBtn.disabled = loading;
   if (loading) {
-    statusEl.innerHTML = '<span class="spinner"></span>Fetching flights... this may take 30s';
+    statusEl.innerHTML = '<span class="spinner"></span>Loading...';
   }
 }
 
-async function fetchFlights(force = false) {
+async function fetchFlights() {
   setLoading(true);
   try {
-    const url = force ? '/api/flights?force=true' : '/api/flights';
-    const res = await fetch(url);
+    const res = await fetch('flights.json?' + Date.now());
     const data = await res.json();
 
     if (data.error) throw new Error(data.error);
@@ -129,15 +128,15 @@ async function fetchFlights(force = false) {
     renderFlights();
     statusEl.textContent = `${allFlights.length} flights \u00b7 Updated ${timeAgo(data.fetchedAt)}`;
   } catch (err) {
-    flightsEl.innerHTML = `<div class="error">${err.message}</div>`;
-    statusEl.textContent = 'Failed to load';
+    flightsEl.innerHTML = `<div class="error">No flight data yet. Data refreshes every 30 minutes.</div>`;
+    statusEl.textContent = 'Waiting for data';
   } finally {
     setLoading(false);
   }
 }
 
 countrySelect.addEventListener('change', renderFlights);
-refreshBtn.addEventListener('click', () => fetchFlights(true));
+refreshBtn.addEventListener('click', () => fetchFlights());
 
 // Auto-fetch on load
 fetchFlights();

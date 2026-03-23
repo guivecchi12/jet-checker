@@ -1,4 +1,4 @@
-const CACHE = 'jet-flights-v1';
+const CACHE = 'jet-flights-v2';
 const SHELL = ['/', '/style.css', '/app.js', '/manifest.json', '/icon-192.svg', '/icon-512.svg'];
 
 self.addEventListener('install', (e) => {
@@ -16,8 +16,8 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.url.includes('/api/')) {
-    // Network-first for API
+  if (e.request.url.includes('flights.json')) {
+    // Network-first for flight data
     e.respondWith(
       fetch(e.request)
         .then((r) => {
