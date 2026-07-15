@@ -76,10 +76,13 @@ header button:disabled { opacity: 0.4; }
 
 .controls {
   margin-bottom: 6px;
+  display: flex;
+  gap: 8px;
 }
 
 select {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 12px 40px 12px 14px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
