@@ -1,4 +1,5 @@
 const countrySelect = document.getElementById('country');
+const destinationSelect = document.getElementById('destination');
 const refreshBtn = document.getElementById('refresh');
 const statusEl = document.getElementById('status');
 const flightsEl = document.getElementById('flights');
@@ -24,16 +25,19 @@ function titleCase(str) {
 
 function renderFlights() {
   const country = countrySelect.value;
-  const filtered = country === 'ALL'
-    ? allFlights
-    : allFlights.filter((f) => f.from.countryName === country);
+  const destination = destinationSelect.value;
+  const filtered = allFlights.filter((f) =>
+    (country === 'ALL' || f.from.countryName === country)
+    && (destination === 'ALL' || f.to.countryName === destination)
+  );
 
   if (filtered.length === 0) {
-    const label = country === 'ALL' ? 'any country' : titleCase(country);
+    const fromLabel = country === 'ALL' ? 'any country' : titleCase(country);
+    const toLabel = destination === 'ALL' ? '' : ` to ${titleCase(destination)}`;
     flightsEl.innerHTML = `
       <div class="empty">
         <div class="empty-icon">&#9992;</div>
-        <div>No flights departing from ${label} this week.</div>
+        <div>No flights departing from ${fromLabel}${toLabel} this week.</div>
       </div>`;
     return;
   }
@@ -109,6 +113,21 @@ function populateCountries(countries) {
   }
 }
 
+function populateDestinations() {
+  const current = destinationSelect.value;
+  const countries = [...new Set(allFlights.map((f) => f.to.countryName))].sort();
+  destinationSelect.innerHTML = '<option value="ALL">All Destinations</option>';
+  for (const c of countries) {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = titleCase(c);
+    destinationSelect.appendChild(opt);
+  }
+  if ([...destinationSelect.options].some((o) => o.value === current)) {
+    destinationSelect.value = current;
+  }
+}
+
 function setLoading(loading) {
   document.body.classList.toggle('loading', loading);
   refreshBtn.disabled = loading;
@@ -126,6 +145,7 @@ async function fetchFlights() {
 
     allFlights = data.flights;
     populateCountries(data.countries);
+    populateDestinations();
     renderFlights();
     statusEl.textContent = `${allFlights.length} flights \u00b7 Updated ${timeAgo(data.fetchedAt)}`;
   } catch {
@@ -141,6 +161,7 @@ async function fetchFlights() {
 }
 
 countrySelect.addEventListener('change', renderFlights);
+destinationSelect.addEventListener('change', renderFlights);
 refreshBtn.addEventListener('click', () => fetchFlights());
 
 fetchFlights();
