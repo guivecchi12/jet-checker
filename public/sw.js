@@ -1,4 +1,4 @@
-const CACHE = 'jet-flights-v3';
+const CACHE = 'jet-flights-v4';
 const SHELL = ['./', 'style.css', 'app.js', 'manifest.json', 'icon-192.svg', 'icon-512.svg'];
 
 self.addEventListener('install', (e) => {
@@ -16,19 +16,17 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.url.includes('flights.json')) {
-    // Network-first for flight data
-    e.respondWith(
-      fetch(e.request)
-        .then((r) => {
+  if (e.request.method !== 'GET') return;
+  // Network-first for everything, cache as offline fallback
+  e.respondWith(
+    fetch(e.request)
+      .then((r) => {
+        if (r.ok) {
           const clone = r.clone();
           caches.open(CACHE).then((c) => c.put(e.request, clone));
-          return r;
-        })
-        .catch(() => caches.match(e.request))
-    );
-  } else {
-    // Cache-first for app shell
-    e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
-  }
+        }
+        return r;
+      })
+      .catch(() => caches.match(e.request))
+  );
 });
