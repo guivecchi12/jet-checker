@@ -1,4 +1,4 @@
-const CACHE = 'jet-flights-v3';
+const CACHE = 'jet-flights-v4';
 const SHELL = ['./', 'style.css', 'app.js', 'manifest.json', 'icon-192.svg', 'icon-512.svg'];
 
 self.addEventListener('install', (e) => {
