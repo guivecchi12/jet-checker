@@ -24,12 +24,20 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install chromium --with-deps
 
+      - name: Save previous flight data
+        run: cp public/flights.json /tmp/flights-old.json 2>/dev/null || true
+
       - name: Scrape flights
         env:
           MYIDTRAVEL_COMPANY: ${{ secrets.MYIDTRAVEL_COMPANY }}
           MYIDTRAVEL_USERNAME: ${{ secrets.MYIDTRAVEL_USERNAME }}
           MYIDTRAVEL_PASSWORD: ${{ secrets.MYIDTRAVEL_PASSWORD }}
         run: node scrape.js
+
+      - name: Notify new US flights
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: node notify.js /tmp/flights-old.json public/flights.json
 
       - name: Commit and push if changed
         run: |
