@@ -81,6 +81,7 @@ for (const rule of valid) {
     method: "POST",
     headers: {
       Title: `${hits.length} new flight${hits.length === 1 ? "" : "s"} ${ruleLabel(rule)}`,
+      Priority: "high",
       Tags: "airplane",
       Click: "https://guivecchi12.github.io/jet-checker/",
     },
