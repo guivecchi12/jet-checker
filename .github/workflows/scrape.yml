@@ -2,7 +2,7 @@ name: Scrape Flights
 
 on:
   schedule:
-    - cron: '0 12 * * *' # Once daily at 12:00 UTC (6am MT)
+    - cron: '0 14 * * *' # Once daily at 14:00 UTC (8am MDT / 7am MST)
   workflow_dispatch: # Manual trigger
 
 permissions:
