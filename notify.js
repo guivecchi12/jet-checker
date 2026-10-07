@@ -1,7 +1,15 @@
 import "dotenv/config";
 import { readFileSync, existsSync } from "fs";
+import nodemailer from "nodemailer";
 
 const NTFY_TOPIC = process.env.NTFY_TOPIC;
+// Email via SMTP (defaults to Gmail). For Gmail, SMTP_PASS must be an App Password.
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL;
+const SITE_URL = "https://guivecchi12.github.io/jet-checker/";
 const RULES_PATH = "notifications.json";
 const [oldPath, newPath] = process.argv.slice(2);
 
@@ -10,8 +18,12 @@ if (!oldPath || !newPath) {
   process.exit(1);
 }
 
-if (!NTFY_TOPIC) {
-  console.log("NTFY_TOPIC not set, skipping notifications.");
+const emailEnabled = Boolean(SMTP_USER && SMTP_PASS && NOTIFY_EMAIL);
+
+if (!NTFY_TOPIC && !emailEnabled) {
+  console.log(
+    "Neither NTFY_TOPIC nor SMTP_USER/SMTP_PASS/NOTIFY_EMAIL set, skipping notifications.",
+  );
   process.exit(0);
 }
 
@@ -65,6 +77,56 @@ function ruleLabel(rule) {
   return `${rule.direction === "from" ? "from" : "to"} ${place}`;
 }
 
+const mailer = emailEnabled
+  ? nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    })
+  : null;
+
+async function sendNtfy(title, lines) {
+  const res = await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+    method: "POST",
+    headers: {
+      Title: title,
+      Priority: "high",
+      Tags: "airplane",
+      Click: SITE_URL,
+    },
+    body: lines.join("\n"),
+  });
+  if (!res.ok) {
+    throw new Error(`ntfy request failed: ${res.status} ${await res.text()}`);
+  }
+}
+
+function emailBody(hits) {
+  return hits
+    .map((f) =>
+      [
+        `${f.flightNumber} (${f.aircraft}) · ${f.ticketingAirline?.name ?? ""}`,
+        `  ${f.from.code} ${f.from.name} → ${f.to.code} ${f.to.name}`,
+        `  ${f.departureDate} ${f.departureTime}–${f.arrivalTime} (${f.duration})`,
+        `  ${f.price.total.value} ${f.price.total.currency} · ${f.bookableSeats} seats`,
+      ].join("\n"),
+    )
+    .concat(`View all flights: ${SITE_URL}`)
+    .join("\n\n");
+}
+
+async function sendEmail(title, hits) {
+  await mailer.sendMail({
+    from: `Jet Checker <${SMTP_USER}>`,
+    to: NOTIFY_EMAIL,
+    subject: title,
+    text: emailBody(hits),
+  });
+}
+
+let failed = false;
+
 for (const rule of valid) {
   const hits = added.filter((f) => matches(f, rule));
   if (hits.length === 0) {
@@ -72,26 +134,26 @@ for (const rule of valid) {
     continue;
   }
 
+  const title = `${hits.length} new flight${hits.length === 1 ? "" : "s"} ${ruleLabel(rule)}`;
   const lines = hits.map(
     (f) =>
       `${f.from.code} → ${f.to.code} · ${f.departureDate} ${f.departureTime} · ${f.price.total.value} ${f.price.total.currency} · ${f.bookableSeats} seats`,
   );
 
-  const res = await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
-    method: "POST",
-    headers: {
-      Title: `${hits.length} new flight${hits.length === 1 ? "" : "s"} ${ruleLabel(rule)}`,
-      Priority: "high",
-      Tags: "airplane",
-      Click: "https://guivecchi12.github.io/jet-checker/",
-    },
-    body: lines.join("\n"),
-  });
+  // Send each channel independently so one failing doesn't block the other.
+  const channels = [];
+  if (NTFY_TOPIC) channels.push(["ntfy", () => sendNtfy(title, lines)]);
+  if (mailer) channels.push(["email", () => sendEmail(title, hits)]);
 
-  if (!res.ok) {
-    console.error(`ntfy request failed: ${res.status} ${await res.text()}`);
-    process.exit(1);
+  for (const [name, send] of channels) {
+    try {
+      await send();
+      console.log(`Sent ${name}: ${hits.length} new flight(s) ${ruleLabel(rule)}.`);
+    } catch (err) {
+      console.error(`${name} failed: ${err.message}`);
+      failed = true;
+    }
   }
-
-  console.log(`Notified ${hits.length} new flight(s) ${ruleLabel(rule)}.`);
 }
+
+if (failed) process.exit(1);
