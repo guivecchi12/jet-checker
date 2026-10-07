@@ -1,6 +1,6 @@
 name: Test Notifications
 
-# Sends a [TEST] email and ntfy alert listing every current flight that matches
+# Sends a [TEST] email listing every current flight that matches
 # notifications.json (or a "working" message if none match). Doesn't scrape or commit.
 on:
   workflow_dispatch:
@@ -20,7 +20,6 @@ jobs:
 
       - name: Send test notifications
         env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
