@@ -3,7 +3,6 @@ import { readFileSync, existsSync } from "fs";
 import nodemailer from "nodemailer";
 import { emailHtml } from "./email-template.js";
 
-const NTFY_TOPIC = process.env.NTFY_TOPIC;
 // Email via SMTP (defaults to Gmail). For Gmail, SMTP_PASS must be an App Password.
 const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
 const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
@@ -13,7 +12,7 @@ const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL;
 const SITE_URL = "https://guivecchi12.github.io/jet-checker/";
 const RULES_PATH = "notifications.json";
 // --test <flights.json>: send every current matching flight (not just new ones),
-// and send a message even when nothing matches, to verify the channels work.
+// and send a message even when nothing matches, to verify email works.
 const TEST = process.argv[2] === "--test";
 const [oldPath, newPath] = TEST
   ? [null, process.argv[3]]
@@ -29,10 +28,8 @@ if ((!TEST && !oldPath) || !newPath) {
 
 const emailEnabled = Boolean(SMTP_USER && SMTP_PASS && NOTIFY_EMAIL);
 
-if (!NTFY_TOPIC && !emailEnabled) {
-  console.log(
-    "Neither NTFY_TOPIC nor SMTP_USER/SMTP_PASS/NOTIFY_EMAIL set, skipping notifications.",
-  );
+if (!emailEnabled) {
+  console.log("SMTP_USER/SMTP_PASS/NOTIFY_EMAIL not set, skipping notifications.");
   process.exit(TEST ? 1 : 0);
 }
 
@@ -86,30 +83,12 @@ function ruleLabel(rule) {
   return `${rule.direction === "from" ? "from" : "to"} ${place}`;
 }
 
-const mailer = emailEnabled
-  ? nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
-    })
-  : null;
-
-async function sendNtfy(title, lines) {
-  const res = await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
-    method: "POST",
-    headers: {
-      Title: title,
-      Priority: "high",
-      Tags: "airplane",
-      Click: SITE_URL,
-    },
-    body: lines.join("\n"),
-  });
-  if (!res.ok) {
-    throw new Error(`ntfy request failed: ${res.status} ${await res.text()}`);
-  }
-}
+const mailer = nodemailer.createTransport({
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_PORT === 465,
+  auth: { user: SMTP_USER, pass: SMTP_PASS },
+});
 
 function emailBody(hits) {
   if (hits.length === 0) {
@@ -150,26 +129,13 @@ for (const rule of valid) {
   const title = TEST
     ? `[TEST] ${hits.length} current flight${hits.length === 1 ? "" : "s"} ${ruleLabel(rule)}`
     : `${hits.length} new flight${hits.length === 1 ? "" : "s"} ${ruleLabel(rule)}`;
-  const lines = hits.length
-    ? hits.map(
-    (f) =>
-        `${f.from.code} → ${f.to.code} · ${f.departureDate} ${f.departureTime} · ${f.price.total.value} ${f.price.total.currency} · ${f.bookableSeats} seats`,
-      )
-    : ["Test message: notifications are working. No flights match right now."];
 
-  // Send each channel independently so one failing doesn't block the other.
-  const channels = [];
-  if (NTFY_TOPIC) channels.push(["ntfy", () => sendNtfy(title, lines)]);
-  if (mailer) channels.push(["email", () => sendEmail(title, hits)]);
-
-  for (const [name, send] of channels) {
-    try {
-      await send();
-      console.log(`Sent ${name}: ${title}.`);
-    } catch (err) {
-      console.error(`${name} failed: ${err.message}`);
-      failed = true;
-    }
+  try {
+    await sendEmail(title, hits);
+    console.log(`Sent email: ${title}.`);
+  } catch (err) {
+    console.error(`email failed: ${err.message}`);
+    failed = true;
   }
 }
 

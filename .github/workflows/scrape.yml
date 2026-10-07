@@ -37,7 +37,6 @@ jobs:
 
       - name: Notify new US flights
         env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
