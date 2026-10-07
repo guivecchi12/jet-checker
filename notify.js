@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { readFileSync, existsSync } from "fs";
 import nodemailer from "nodemailer";
+import { emailHtml } from "./email-template.js";
 
 const NTFY_TOPIC = process.env.NTFY_TOPIC;
 // Email via SMTP (defaults to Gmail). For Gmail, SMTP_PASS must be an App Password.
@@ -133,6 +134,7 @@ async function sendEmail(title, hits) {
     to: NOTIFY_EMAIL,
     subject: title,
     text: emailBody(hits),
+    html: emailHtml({ title, hits, siteUrl: SITE_URL, test: TEST }),
   });
 }
 
