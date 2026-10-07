@@ -11,10 +11,18 @@ const SMTP_PASS = process.env.SMTP_PASS;
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL;
 const SITE_URL = "https://guivecchi12.github.io/jet-checker/";
 const RULES_PATH = "notifications.json";
-const [oldPath, newPath] = process.argv.slice(2);
+// --test <flights.json>: send every current matching flight (not just new ones),
+// and send a message even when nothing matches, to verify the channels work.
+const TEST = process.argv[2] === "--test";
+const [oldPath, newPath] = TEST
+  ? [null, process.argv[3]]
+  : process.argv.slice(2);
 
-if (!oldPath || !newPath) {
-  console.error("Usage: node notify.js <old-flights.json> <new-flights.json>");
+if ((!TEST && !oldPath) || !newPath) {
+  console.error(
+    "Usage: node notify.js <old-flights.json> <new-flights.json>\n" +
+      "       node notify.js --test <flights.json>",
+  );
   process.exit(1);
 }
 
@@ -24,10 +32,10 @@ if (!NTFY_TOPIC && !emailEnabled) {
   console.log(
     "Neither NTFY_TOPIC nor SMTP_USER/SMTP_PASS/NOTIFY_EMAIL set, skipping notifications.",
   );
-  process.exit(0);
+  process.exit(TEST ? 1 : 0);
 }
 
-if (!existsSync(oldPath)) {
+if (!TEST && !existsSync(oldPath)) {
   console.log("No previous flight data, skipping notifications.");
   process.exit(0);
 }
@@ -51,8 +59,8 @@ if (valid.length === 0) {
 const flightKey = (f) =>
   `${f.flightNumber}|${f.departureDate}|${f.from.code}|${f.to.code}`;
 
-const oldFlights = JSON.parse(readFileSync(oldPath, "utf8")).flights;
 const newFlights = JSON.parse(readFileSync(newPath, "utf8")).flights;
+const oldFlights = TEST ? [] : JSON.parse(readFileSync(oldPath, "utf8")).flights;
 
 const known = new Set(oldFlights.map(flightKey));
 const added = newFlights.filter((f) => !known.has(flightKey(f)));
@@ -103,6 +111,9 @@ async function sendNtfy(title, lines) {
 }
 
 function emailBody(hits) {
+  if (hits.length === 0) {
+    return `Test message: notifications are working. No flights match right now.\n\nView all flights: ${SITE_URL}`;
+  }
   return hits
     .map((f) =>
       [
@@ -129,16 +140,20 @@ let failed = false;
 
 for (const rule of valid) {
   const hits = added.filter((f) => matches(f, rule));
-  if (hits.length === 0) {
+  if (hits.length === 0 && !TEST) {
     console.log(`No new flights ${ruleLabel(rule)}.`);
     continue;
   }
 
-  const title = `${hits.length} new flight${hits.length === 1 ? "" : "s"} ${ruleLabel(rule)}`;
-  const lines = hits.map(
+  const title = TEST
+    ? `[TEST] ${hits.length} current flight${hits.length === 1 ? "" : "s"} ${ruleLabel(rule)}`
+    : `${hits.length} new flight${hits.length === 1 ? "" : "s"} ${ruleLabel(rule)}`;
+  const lines = hits.length
+    ? hits.map(
     (f) =>
-      `${f.from.code} → ${f.to.code} · ${f.departureDate} ${f.departureTime} · ${f.price.total.value} ${f.price.total.currency} · ${f.bookableSeats} seats`,
-  );
+        `${f.from.code} → ${f.to.code} · ${f.departureDate} ${f.departureTime} · ${f.price.total.value} ${f.price.total.currency} · ${f.bookableSeats} seats`,
+      )
+    : ["Test message: notifications are working. No flights match right now."];
 
   // Send each channel independently so one failing doesn't block the other.
   const channels = [];
@@ -148,7 +163,7 @@ for (const rule of valid) {
   for (const [name, send] of channels) {
     try {
       await send();
-      console.log(`Sent ${name}: ${hits.length} new flight(s) ${ruleLabel(rule)}.`);
+      console.log(`Sent ${name}: ${title}.`);
     } catch (err) {
       console.error(`${name} failed: ${err.message}`);
       failed = true;
